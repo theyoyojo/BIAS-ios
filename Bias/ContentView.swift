@@ -9,13 +9,20 @@ import SwiftUI
 import MarkdownUI
 
 struct SourceListSettingsView: View {
+    @AppStorage("hostname") private var hostname: String = "yeast.news"
+    
     var body: some View {
-        Text("Source list settings")
+        Form {
+            Section(header: Text("BIAS Server Configuration")) {
+                TextField("Hostname", text: $hostname)
+            }
+        }
     }
 }
 
 struct ReportListSettingsView: View {
-   var body: some View {
+    
+    var body: some View {
         Text("Report list settings")
     }
 }
