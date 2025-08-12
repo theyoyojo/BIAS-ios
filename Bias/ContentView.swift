@@ -41,6 +41,7 @@ hi
 
 struct ReportView: View {
     @ObservedObject var model: BiasModel
+    let source: String
     let after: String
     let before: String
     let title: String
@@ -70,7 +71,7 @@ struct ReportView: View {
         .onAppear() {
             Task {
                 do {
-                    let reply = try await model.fetchSelectedReport(after: self.after, before: self.before)
+                    let reply = try await model.fetchSelectedReport(for: self.source, after: self.after, before: self.before)
                     model.selectedReport = reply.data
                 } catch {
                     print("Error fetching report: \(error)")
@@ -83,16 +84,17 @@ struct ReportView: View {
 
 struct ReportListView: View {
     @ObservedObject var model: BiasModel
+    let source: String
 
     var body: some View {
         Form {
             ForEach(model.selectedSourceReports) { report in
-                NavigationLink(destination: ReportView(model: model, after: report.after, before: report.before, title: "From \(report.after) to \(report.before)")) {
+                NavigationLink(destination: ReportView(model: model, source: source, after: report.after, before: report.before, title: "From \(report.after) to \(report.before)")) {
                     Text("From \(report.after) to \(report.before)")
                 }
             }
         }
-        .navigationTitle(Text("\(model.sources[model.selectedSourceIndex]) reports"))
+        .navigationTitle(Text("\(source) reports"))
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItemGroup(placement: .automatic) {
@@ -104,7 +106,7 @@ struct ReportListView: View {
         .onAppear() {
             Task {
                 do {
-                    let reply = try await model.fetchSelectedReportList()
+                    let reply = try await model.fetchSelectedReportList(for: source)
                     model.selectedSourceReports = reply.data
                 } catch {
                     print("Error fetching report list: \(error)")
@@ -169,7 +171,7 @@ struct BiasSourcesReply: Decodable {
 class BiasModel: ObservableObject {
     @AppStorage("hostname") var hostname = "yeast.news"
     @Published var sources: [String] = []
-    @Published var selectedSourceIndex: Int = 0
+    @Published var selectedSource: String = ""
     @Published var selectedSourceReports: [BiasReportsListEntry] = []
     @Published var selectedReport: BiasReportContent = BiasReportContent()
     
@@ -201,8 +203,8 @@ class BiasModel: ObservableObject {
         }
     }
     
-    func fetchSelectedReportList() async throws -> BiasReportsListReply {
-        return try await fetchReportList(for: self.sources[self.selectedSourceIndex])
+    func fetchSelectedReportList(for source: String) async throws -> BiasReportsListReply {
+        return try await fetchReportList(for: source)
     }
     
     func fetchReport(for source: String, after: String, before: String) async throws -> BiasReportReply {
@@ -220,7 +222,7 @@ class BiasModel: ObservableObject {
         
     }
     
-    func fetchSelectedReport(after: String, before: String) async throws -> BiasReportReply {
+    func fetchSelectedReport(for source: String, after: String, before: String) async throws -> BiasReportReply {
         var afterDate: String = ""
         var beforeDate: String = ""
         
@@ -240,7 +242,7 @@ class BiasModel: ObservableObject {
             displayFormatter.dateFormat = "yyyy-MM-dd"
             beforeDate = displayFormatter.string(from: isobefore)
         }
-        return try await fetchReport(for: self.sources[self.selectedSourceIndex], after: afterDate, before: beforeDate)
+        return try await fetchReport(for: source, after: afterDate, before: beforeDate)
     }
 }
 
@@ -251,7 +253,7 @@ struct SourceListView: View {
         NavigationStack {
             Form {
                 ForEach(model.sources, id: \.self) { source in
-                    NavigationLink(destination: ReportListView(model: model)) {
+                    NavigationLink(destination: ReportListView(model: model, source: source)) {
                         Text(source)
                     }
                 }
