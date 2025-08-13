@@ -83,7 +83,14 @@ struct ReportView: View {
                 } catch {
                     print("Error fetching report: \(error)")
                 }
-                
+            }
+        }
+        .refreshable {
+            do {
+                let reply = try await model.fetchSelectedReport(for: self.source, after: self.after, before: self.before)
+                model.selectedReport = reply.data
+            } catch {
+                print("Error fetching report: \(error)")
             }
         }
     }
@@ -111,6 +118,16 @@ struct ReportListView: View {
             }
         }
         .onAppear() {
+            Task {
+                do {
+                    let reply = try await model.fetchSelectedReportList(for: source)
+                    model.selectedSourceReports = reply.data
+                } catch {
+                    print("Error fetching report list: \(error)")
+                }
+            }
+        }
+        .refreshable {
             Task {
                 do {
                     let reply = try await model.fetchSelectedReportList(for: source)
@@ -276,6 +293,16 @@ struct SourceListView: View {
             }
         }
         .onAppear() {
+            Task {
+                do {
+                    let reply = try await model.fetchSources()
+                    model.sources = reply.data
+                } catch {
+                    print("Error fetching sources: \(error)")
+                }
+            }
+        }
+        .refreshable {
             Task {
                 do {
                     let reply = try await model.fetchSources()
